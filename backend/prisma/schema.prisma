@@ -1,0 +1,227 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  password          String?
+  name              String
+  username          String    @unique
+  bio               String?
+  avatar            String?
+  city              String?
+  area              String?
+  isVerified        Boolean   @default(false)
+  isOnline          Boolean   @default(false)
+  lastSeen          DateTime  @default(now())
+  verificationPaidAt DateTime?
+  boostExpiresAt    DateTime?
+  matchPreferences  Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  vibeTags          UserVibeTag[]
+  skills            UserSkill[]
+  sentMessages      Message[]        @relation("SentMessages")
+  rooms             RoomMember[]
+  createdRooms      Room[]           @relation("RoomCreator")
+  postedProjects    Project[]        @relation("ProjectPoster")
+  applications      Application[]
+  ratingsGiven      Rating[]         @relation("RatingGiver")
+  ratingsReceived   Rating[]         @relation("RatingReceiver")
+  notifications     Notification[]
+  payments          Payment[]
+}
+
+model VibeTag {
+  id    String        @id @default(uuid())
+  name  String        @unique
+  emoji String
+  users UserVibeTag[]
+}
+
+model UserVibeTag {
+  userId    String
+  vibeTagId String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vibeTag   VibeTag @relation(fields: [vibeTagId], references: [id], onDelete: Cascade)
+  @@id([userId, vibeTagId])
+}
+
+model Skill {
+  id    String      @id @default(uuid())
+  name  String      @unique
+  users UserSkill[]
+}
+
+model UserSkill {
+  userId  String
+  skillId String
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill   Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  @@id([userId, skillId])
+}
+
+model Room {
+  id        String       @id @default(uuid())
+  name      String?
+  type      RoomType     @default(DIRECT)
+  projectId String?
+  creatorId String?
+  createdAt DateTime     @default(now())
+  creator   User?        @relation("RoomCreator", fields: [creatorId], references: [id])
+  members   RoomMember[]
+  messages  Message[]
+}
+
+enum RoomType {
+  DIRECT
+  COLLAB
+}
+
+model RoomMember {
+  roomId   String
+  userId   String
+  joinedAt DateTime @default(now())
+  room     Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([roomId, userId])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  roomId    String
+  senderId  String
+  content   String
+  createdAt DateTime @default(now())
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id])
+}
+
+model Project {
+  id           String        @id @default(uuid())
+  title        String
+  description  String
+  budget       Float
+  currency     String        @default("PKR")
+  deadline     DateTime?
+  status       ProjectStatus @default(OPEN)
+  posterId     String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  poster       User          @relation("ProjectPoster", fields: [posterId], references: [id])
+  skills       ProjectSkill[]
+  applications Application[]
+  milestones   Milestone[]
+}
+
+enum ProjectStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model ProjectSkill {
+  projectId String
+  skillName String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@id([projectId, skillName])
+}
+
+model Milestone {
+  id          String          @id @default(uuid())
+  projectId   String
+  title       String
+  description String?
+  amount      Float
+  dueDate     DateTime?
+  status      MilestoneStatus @default(PENDING)
+  order       Int             @default(0)
+  createdAt   DateTime        @default(now())
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  payments    Payment[]
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  RELEASED
+}
+
+model Application {
+  id          String            @id @default(uuid())
+  projectId   String
+  applicantId String
+  pitch       String
+  status      ApplicationStatus @default(PENDING)
+  createdAt   DateTime          @default(now())
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  applicant   User              @relation(fields: [applicantId], references: [id])
+  @@unique([projectId, applicantId])
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model Rating {
+  id         String   @id @default(uuid())
+  giverId    String
+  receiverId String
+  score      Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  giver      User     @relation("RatingGiver", fields: [giverId], references: [id])
+  receiver   User     @relation("RatingReceiver", fields: [receiverId], references: [id])
+  @@unique([giverId, receiverId])
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  userId      String
+  type        PaymentType
+  amount      Float
+  currency    String        @default("PKR")
+  status      PaymentStatus @default(PENDING)
+  milestoneId String?
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+  user        User          @relation(fields: [userId], references: [id])
+  milestone   Milestone?    @relation(fields: [milestoneId], references: [id])
+}
+
+enum PaymentType {
+  VERIFICATION
+  BOOST
+  MILESTONE_ESCROW
+  MILESTONE_RELEASE
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  message   String
+  read      Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
