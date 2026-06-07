@@ -52,13 +52,14 @@ export default function AppLayout({ children }) {
   );
 
   const mobileNav = [
-  { href: '/discover', icon: Compass,        label: 'Discover' },
-  { href: '/chat',     icon: MessageCircle,  label: 'Chat' },
-  { href: '/projects', icon: Briefcase,      label: 'Projects' },
-  { href: '/profile',  icon: User,           label: 'Profile' },
-  { href: '/notifications', icon: Bell,      label: 'Alerts', badge: unreadNotifs },
+  { href: '/discover',       icon: Compass,        label: 'Discover' },
+  { href: '/match',          icon: Zap,            label: 'Match' },
+  { href: '/chat',           icon: MessageCircle,  label: 'Chat' },
+  { href: '/projects',       icon: Briefcase,      label: 'Projects' },
+  { href: '/profile',        icon: User,           label: 'Profile' },
+  { href: '/settings',       icon: Settings,       label: 'Settings' },
+  { href: '/notifications',  icon: Bell,           label: 'Alerts', badge: unreadNotifs },
 ];
-
   return (
     <div className="min-h-screen bg-surface flex">
       {/* Sidebar */}
@@ -131,21 +132,20 @@ export default function AppLayout({ children }) {
       </aside>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 px-1 py-1.5 flex justify-around">
-        {mobileNav.map(({ href, icon: Icon, label, badge }) => (
-          <Link key={href} href={href}
-            className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors relative ${
-              pathname.startsWith(href) ? 'text-brand-400' : 'text-gray-600'
-            }`}
-          >
-            <Icon size={19} />
-            {badge > 0 && (
-              <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-brand-500 text-white text-[9px] flex items-center justify-center rounded-full">{badge}</span>
-            )}
-            <span className="text-[9px]">{label}</span>
-          </Link>
-        ))}
-      </nav>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 px-2 py-2 flex justify-around items-center">
+  {mobileNav.map(({ href, icon: Icon, label, badge }) => (
+    <Link key={href} href={href}
+      className={`flex flex-col items-center justify-center p-2 rounded-xl transition-colors relative ${
+        pathname.startsWith(href) ? 'text-brand-400' : 'text-gray-600'
+      }`}
+    >
+      <Icon size={18} />
+      {badge > 0 && (
+        <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-brand-500 text-white text-[9px] flex items-center justify-center rounded-full">{badge}</span>
+      )}
+    </Link>
+  ))}
+</nav>
 
       <main className="flex-1 md:ml-60 pb-20 md:pb-0 page-enter w-full overflow-x-hidden">
         {children}
