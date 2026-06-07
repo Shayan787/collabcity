@@ -24,13 +24,13 @@ const io = new Server(server, {
 
 app.use(cors({
   origin: function(origin, callback) {
-    const allowed = [
-      process.env.FRONTEND_URL,
-      'http://localhost:3000',
-      'https://collabcity-frontend.vercel.app',
-      'https://collabcity-frontend.vercel.app/',
-    ].filter(Boolean);
-    if (!origin || allowed.some(o => origin.startsWith(o.replace(/\/$/, '')))) {
+    // Allow all Vercel deployments, localhost, and the set FRONTEND_URL
+    if (
+      !origin ||
+      origin.includes('vercel.app') ||
+      origin.includes('localhost') ||
+      origin === process.env.FRONTEND_URL
+    ) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
