@@ -52,12 +52,12 @@ export default function AppLayout({ children }) {
   );
 
   const mobileNav = [
-    { href: '/discover', icon: Compass, label: 'Discover' },
-    { href: '/match',    icon: Zap,     label: 'Match' },
-    { href: '/chat',     icon: MessageCircle, label: 'Chat' },
-    { href: '/projects', icon: Briefcase, label: 'Projects' },
-    { href: '/notifications', icon: Bell, label: 'Alerts', badge: unreadNotifs },
-  ];
+  { href: '/discover', icon: Compass,        label: 'Discover' },
+  { href: '/chat',     icon: MessageCircle,  label: 'Chat' },
+  { href: '/projects', icon: Briefcase,      label: 'Projects' },
+  { href: '/profile',  icon: User,           label: 'Profile' },
+  { href: '/notifications', icon: Bell,      label: 'Alerts', badge: unreadNotifs },
+];
 
   return (
     <div className="min-h-screen bg-surface flex">
