@@ -27,7 +27,7 @@ export default function HomePage() {
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 py-4 flex items-center justify-between border-b border-border/50 backdrop-blur-xl bg-surface/80">
         <span className="font-display text-xl font-bold text-white tracking-tight">
-          <img src="/logo.png" alt="CollabCity" style={{ height: '60px', objectFit: 'contain' }} />
+          <img src="/logo.png" alt="CollabCity" style={{ height: '60px', borderRadius:'20px', objectFit: 'contain' }} />
         </span>
         <div className="flex items-center gap-2">
           <Link href="/login" className="btn-ghost text-sm px-3 py-2">Sign in</Link>
