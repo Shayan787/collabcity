@@ -3,77 +3,102 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import useAuthStore from '@/store/auth';
 import toast from 'react-hot-toast';
-import { Plus, Briefcase, MapPin, Clock, DollarSign, Users, X } from 'lucide-react';
+import { Plus, Briefcase, MapPin, Clock, Users, X, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import Link from 'next/link';
+
+const STATUS_COLORS = {
+  OPEN:        'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+  IN_PROGRESS: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+  COMPLETED:   'text-gray-400 bg-white/5 border-border',
+  CANCELLED:   'text-red-400 bg-red-500/10 border-red-500/20',
+};
 
 function ProjectCard({ project, onApply, currentUserId }) {
   const isOwn = project.poster?.id === currentUserId;
 
   return (
-    <div className="card p-5 hover:border-brand-500/30 transition-all animate-fade-in">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-white mb-0.5 truncate">{project.title}</h3>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <div className="flex items-center gap-1">
-              <div className="w-4 h-4 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 text-[9px] font-bold">
-                {project.poster?.name?.[0]}
+    <Link href={`/projects/${project.id}`}>
+      <div className="card p-4 active:scale-[0.98] transition-all hover:border-brand-500/30">
+        {/* Title row */}
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-white text-sm leading-snug line-clamp-2 mb-1">{project.title}</h3>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 flex-wrap">
+              <div className="flex items-center gap-1">
+                <div className="w-3.5 h-3.5 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 text-[9px] font-bold flex-shrink-0">
+                  {project.poster?.name?.[0]}
+                </div>
+                <span className="truncate max-w-[80px]">{project.poster?.name}</span>
+                {project.poster?.isVerified && <span className="text-brand-400">✓</span>}
               </div>
-              {project.poster?.name}
-              {project.poster?.isVerified && <span className="text-brand-400 text-[10px]">✓</span>}
+              <span>·</span>
+              <div className="flex items-center gap-0.5">
+                <MapPin size={9} />
+                <span>{project.poster?.city || 'Karachi'}</span>
+              </div>
             </div>
-            <span>·</span>
-            <MapPin size={10} />
-            {project.poster?.city || 'Karachi'}
+          </div>
+          {/* Budget badge */}
+          <div className="flex-shrink-0 text-right">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-2.5 py-1.5">
+              <p className="font-bold text-emerald-400 text-sm leading-none">{project.budget.toLocaleString()}</p>
+              <p className="text-emerald-600 text-[10px] mt-0.5">{project.currency}</p>
+            </div>
           </div>
         </div>
-        <div className="text-right flex-shrink-0 ml-3">
-          <p className="font-display font-bold text-white text-lg">
-            {project.budget.toLocaleString()}
-          </p>
-          <p className="text-xs text-gray-500">{project.currency}</p>
-        </div>
-      </div>
 
-      <p className="text-gray-400 text-sm line-clamp-2 mb-3 leading-relaxed">
-        {project.description}
-      </p>
+        {/* Description */}
+        <p className="text-gray-400 text-xs leading-relaxed mb-3 line-clamp-2">
+          {project.description}
+        </p>
 
-      {project.skills?.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {project.skills.map(s => (
-            <span key={s.skillName} className="tag tag-gray text-xs">{s.skillName}</span>
-          ))}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 text-xs text-gray-500">
-          <div className="flex items-center gap-1">
-            <Users size={11} />
-            {project._count?.applications || 0} applied
+        {/* Skills */}
+        {project.skills?.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {project.skills.slice(0, 3).map(s => (
+              <span key={s.skillName} className="text-[11px] px-2 py-0.5 rounded-md bg-white/5 text-gray-400 border border-white/10">
+                {s.skillName}
+              </span>
+            ))}
+            {project.skills.length > 3 && (
+              <span className="text-[11px] px-2 py-0.5 rounded-md bg-white/5 text-gray-500 border border-white/10">
+                +{project.skills.length - 3}
+              </span>
+            )}
           </div>
-          {project.deadline && (
+        )}
+
+        {/* Footer */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            <span className={`text-[11px] px-2 py-0.5 rounded-md border font-medium ${STATUS_COLORS[project.status]}`}>
+              {project.status.replace('_', ' ')}
+            </span>
             <div className="flex items-center gap-1">
-              <Clock size={11} />
-              {formatDistanceToNow(new Date(project.deadline), { addSuffix: true })}
+              <Users size={10} />
+              <span>{project._count?.applications || 0}</span>
             </div>
-          )}
+            {project.deadline && (
+              <div className="flex items-center gap-1">
+                <Clock size={10} />
+                <span>{formatDistanceToNow(new Date(project.deadline), { addSuffix: true })}</span>
+              </div>
+            )}
+          </div>
+          {!isOwn && project.status === 'OPEN' ? (
+            <button
+              onClick={e => { e.preventDefault(); onApply(project); }}
+              className="text-xs px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl transition-all active:scale-95 font-medium flex-shrink-0"
+            >
+              Apply
+            </button>
+          ) : isOwn ? (
+            <span className="text-xs text-gray-600 flex-shrink-0">Your project</span>
+          ) : null}
         </div>
-
-        {!isOwn && (
-          <button
-            onClick={() => onApply(project)}
-            className="text-xs px-3 py-1.5 bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 border border-brand-500/20 rounded-lg transition-all"
-          >
-            Apply →
-          </button>
-        )}
-        {isOwn && (
-          <span className="text-xs text-gray-500 bg-white/5 px-2 py-1 rounded-lg">Your project</span>
-        )}
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -90,30 +115,32 @@ function ApplyModal({ project, onClose, onSubmit }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-4">
-      <div className="card w-full max-w-lg p-6 animate-slide-up">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center p-0">
+      <div className="card w-full rounded-b-none rounded-t-3xl p-5 animate-slide-up">
+        <div className="w-10 h-1 bg-border rounded-full mx-auto mb-4" />
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="font-semibold text-white">Apply to project</h3>
-            <p className="text-sm text-gray-500">{project.title}</p>
+            <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{project.title}</p>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white p-1"><X size={18} /></button>
+          <button onClick={onClose} className="text-gray-500 hover:text-white p-2"><X size={18} /></button>
         </div>
         <textarea
-          className="input min-h-[120px] resize-none mb-4"
-          placeholder="Tell them why you're perfect for this. Keep it short and punchy!"
+          className="input resize-none min-h-[110px] text-sm mb-3"
+          placeholder="Tell them why you're perfect. Short and punchy!"
           value={pitch}
           onChange={e => setPitch(e.target.value)}
           maxLength={500}
+          autoFocus
         />
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">{pitch.length}/500</span>
-          <div className="flex gap-2">
-            <button onClick={onClose} className="btn-ghost text-sm">Cancel</button>
-            <button onClick={handleSubmit} className="btn-primary text-sm" disabled={loading}>
-              {loading ? 'Sending...' : 'Submit application'}
-            </button>
-          </div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-gray-600">{pitch.length}/500</span>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={onClose} className="btn-ghost flex-1 text-sm">Cancel</button>
+          <button onClick={handleSubmit} className="btn-primary flex-1 text-sm" disabled={loading}>
+            {loading ? 'Sending...' : 'Submit'}
+          </button>
         </div>
       </div>
     </div>
@@ -142,51 +169,52 @@ function NewProjectModal({ onClose, onCreated }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-4">
-      <div className="card w-full max-w-lg p-6 animate-slide-up max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center p-0">
+      <div className="card w-full rounded-b-none rounded-t-3xl p-5 animate-slide-up max-h-[90vh] overflow-y-auto">
+        <div className="w-10 h-1 bg-border rounded-full mx-auto mb-4" />
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-semibold text-white">Post a project</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-white p-1"><X size={18} /></button>
         </div>
         <div className="space-y-3">
           <div>
-            <label className="block text-sm text-gray-400 mb-1.5">Title *</label>
-            <input className="input" placeholder="Need a logo designer" value={form.title}
+            <label className="block text-xs text-gray-400 mb-1.5">Title *</label>
+            <input className="input text-sm" placeholder="Need a logo designer" value={form.title}
               onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1.5">Description *</label>
-            <textarea className="input resize-none min-h-[80px]" placeholder="Describe what you need..."
+            <label className="block text-xs text-gray-400 mb-1.5">Description *</label>
+            <textarea className="input resize-none min-h-[80px] text-sm" placeholder="Describe what you need..."
               value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-gray-400 mb-1.5">Budget *</label>
-              <input type="number" className="input" placeholder="5000" value={form.budget}
+              <label className="block text-xs text-gray-400 mb-1.5">Budget *</label>
+              <input type="number" className="input text-sm" placeholder="5000" value={form.budget}
                 onChange={e => setForm(p => ({ ...p, budget: e.target.value }))} />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1.5">Currency</label>
-              <select className="input" value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value }))}>
+              <label className="block text-xs text-gray-400 mb-1.5">Currency</label>
+              <select className="input text-sm" value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value }))}>
                 <option value="PKR">PKR</option>
                 <option value="USD">USD</option>
               </select>
             </div>
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1.5">Skills needed</label>
-            <input className="input" placeholder="React, Figma, Video Editing (comma separated)" value={form.skills}
+            <label className="block text-xs text-gray-400 mb-1.5">Skills needed</label>
+            <input className="input text-sm" placeholder="React, Figma, Video Editing..." value={form.skills}
               onChange={e => setForm(p => ({ ...p, skills: e.target.value }))} />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1.5">Deadline (optional)</label>
-            <input type="date" className="input" value={form.deadline}
+            <label className="block text-xs text-gray-400 mb-1.5">Deadline (optional)</label>
+            <input type="date" className="input text-sm" value={form.deadline}
               onChange={e => setForm(p => ({ ...p, deadline: e.target.value }))} />
           </div>
         </div>
-        <div className="flex justify-end gap-2 mt-5">
-          <button onClick={onClose} className="btn-ghost text-sm">Cancel</button>
-          <button onClick={handleSubmit} className="btn-primary text-sm" disabled={loading}>
+        <div className="flex gap-2 mt-5">
+          <button onClick={onClose} className="btn-ghost flex-1 text-sm">Cancel</button>
+          <button onClick={handleSubmit} className="btn-primary flex-1 text-sm" disabled={loading}>
             {loading ? 'Posting...' : 'Post project'}
           </button>
         </div>
@@ -236,28 +264,31 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 pb-24 md:pb-8 md:p-8 max-w-3xl mx-auto">
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="font-display text-2xl font-bold text-white mb-1">Project Board</h1>
-          <p className="text-gray-500 text-sm">Find gigs or post your own</p>
+          <h1 className="font-display text-xl md:text-2xl font-bold text-white">Projects</h1>
+          <p className="text-gray-500 text-xs mt-0.5">Find gigs or post your own</p>
         </div>
-        <button onClick={() => setShowNew(true)} className="btn-primary flex items-center gap-2 text-sm">
-          <Plus size={16} />
-          Post project
+        <button onClick={() => setShowNew(true)} className="flex items-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium px-3 py-2.5 rounded-xl transition-all active:scale-95">
+          <Plus size={15} />
+          Post
         </button>
       </div>
 
-      <div className="flex gap-1 bg-card border border-border rounded-xl p-1 mb-6">
+      {/* Tabs */}
+      <div className="flex gap-1 bg-card border border-border rounded-xl p-1 mb-4">
         {[
           { key: 'browse', label: 'Browse' },
-          { key: 'posted', label: 'My Projects' },
+          { key: 'posted', label: 'My Posts' },
           { key: 'applied', label: 'Applied' },
         ].map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 py-2 text-sm rounded-lg font-medium transition-all ${
+            className={`flex-1 py-2 text-xs md:text-sm rounded-lg font-medium transition-all ${
               tab === t.key ? 'bg-brand-500/20 text-brand-400' : 'text-gray-500 hover:text-white'
             }`}
           >
@@ -266,6 +297,7 @@ export default function ProjectsPage() {
         ))}
       </div>
 
+      {/* List */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
@@ -273,10 +305,19 @@ export default function ProjectsPage() {
       ) : projects.length === 0 ? (
         <div className="text-center py-20 text-gray-500">
           <Briefcase size={32} className="mx-auto mb-3 opacity-30" />
-          <p>{tab === 'browse' ? 'No open projects yet.' : tab === 'posted' ? "You haven't posted any projects." : "You haven't applied to any projects."}</p>
+          <p className="text-sm">
+            {tab === 'browse' ? 'No open projects yet.'
+              : tab === 'posted' ? "You haven't posted any projects."
+              : "You haven't applied to any projects."}
+          </p>
+          {tab === 'browse' && (
+            <button onClick={() => setShowNew(true)} className="btn-primary mt-4 text-sm">
+              Post the first one
+            </button>
+          )}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {projects.map(project => (
             <ProjectCard
               key={project.id}
@@ -299,7 +340,7 @@ export default function ProjectsPage() {
       {showNew && (
         <NewProjectModal
           onClose={() => setShowNew(false)}
-          onCreated={p => setProjects(prev => [p, ...prev])}
+          onCreated={p => { setProjects(prev => [p, ...prev]); setTab('browse'); }}
         />
       )}
     </div>
