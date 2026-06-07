@@ -65,7 +65,7 @@ export default function AppLayout({ children }) {
       <aside className="fixed left-0 top-0 bottom-0 w-60 border-r border-border flex flex-col bg-card z-40 hidden md:flex">
         <div className="p-5 border-b border-border">
           <Link href="/discover" className="font-display text-xl font-bold text-white tracking-tight">
-            <img src="/logo.png" alt="CollabCity" style={{ height: '32px', objectFit: 'contain' }} />
+            <img src="/logo.png" alt="CollabCity" style={{ height: '60px', objectFit: 'contain' }} />
           </Link>
         </div>
 

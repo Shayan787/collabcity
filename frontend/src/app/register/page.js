@@ -66,7 +66,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link href="/" className="font-display text-2xl font-bold text-white tracking-tight">
-            <img src="/logo.png" alt="CollabCity" style={{ height: '36px', objectFit: 'contain' }} />
+            <img src="/logo.png" alt="CollabCity" style={{ height: '60px', objectFit: 'contain' }} />
           </Link>
           <p className="text-gray-500 mt-2 text-sm">
             {step === 1 ? 'Create your account' : "What's your vibe?"}
