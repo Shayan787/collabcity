@@ -148,7 +148,7 @@ export default function AppLayout({ children }) {
         ))}
       </nav>
 
-      <main className="flex-1 md:ml-60 pb-20 md:pb-0 page-enter">
+      <main className="flex-1 md:ml-60 pb-20 md:pb-0 page-enter w-full overflow-x-hidden">
         {children}
       </main>
     </div>
