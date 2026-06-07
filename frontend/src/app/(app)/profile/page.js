@@ -3,13 +3,15 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import useAuthStore from '@/store/auth';
 import toast from 'react-hot-toast';
-import { MapPin, Star, Edit2, Check, X, Award, Briefcase } from 'lucide-react';
+import { MapPin, Star, Edit2, Check, X, Award, Briefcase, LogOut } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const VIBE_TAGS = ['Developer','Designer','Video Editor','Content Creator','Musician','Photographer','Marketer','Entrepreneur','Gamer','Writer'];
 const SKILL_SUGGESTIONS = ['React','Next.js','Node.js','Python','Figma','Photoshop','Premiere Pro','After Effects','Flutter','TypeScript','Tailwind','Video Editing','Copywriting'];
 
 export default function ProfilePage() {
-  const { user, updateUser } = useAuthStore();
+  const { user, updateUser, logout } = useAuthStore();
+  const router = useRouter();
   const [profile, setProfile] = useState(null);
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -64,6 +66,7 @@ export default function ProfilePage() {
 
   return (
     <div className="p-4 pb-24 md:pb-8 md:p-8 max-w-2xl mx-auto">
+
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-display text-xl md:text-2xl font-bold text-white">My Profile</h1>
@@ -179,7 +182,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Skills */}
-      <div className="card p-4">
+      <div className="card p-4 mb-3">
         <div className="flex items-center gap-2 mb-3">
           <Briefcase size={14} className="text-brand-400" />
           <h3 className="font-semibold text-white text-sm">Skills</h3>
@@ -222,6 +225,16 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+
+      {/* Sign out button — mobile only */}
+      <button
+        onClick={() => { logout(); router.push('/'); }}
+        className="md:hidden w-full mt-3 flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-red-500/20 bg-red-500/5 text-red-400 font-medium text-sm active:scale-95 transition-all"
+      >
+        <LogOut size={16} />
+        Sign out
+      </button>
+
     </div>
   );
 }
