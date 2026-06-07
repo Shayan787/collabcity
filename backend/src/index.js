@@ -22,7 +22,22 @@ const io = new Server(server, {
   cors: { origin: process.env.FRONTEND_URL || 'http://localhost:3000', methods: ['GET', 'POST'], credentials: true },
 });
 
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000', credentials: true }));
+app.use(cors({
+  origin: function(origin, callback) {
+    const allowed = [
+      process.env.FRONTEND_URL,
+      'http://localhost:3000',
+      'https://collabcity-frontend.vercel.app',
+      'https://collabcity-frontend.vercel.app/',
+    ].filter(Boolean);
+    if (!origin || allowed.some(o => origin.startsWith(o.replace(/\/$/, '')))) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 app.use('/api/auth',          authRoutes);
