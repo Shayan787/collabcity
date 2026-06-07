@@ -5,10 +5,12 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 import useAuthStore from '@/store/auth';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuthStore();
   const router = useRouter();
 
@@ -51,14 +53,23 @@ export default function LoginPage() {
           </div>
           <div>
             <label className="block text-sm text-gray-400 mb-1.5">Password</label>
-            <input
-              type="password"
-              className="input"
-              placeholder="••••••••"
-              value={form.password}
-              onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
-              required
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="input pr-12"
+                placeholder="••••••••"
+                value={form.password}
+                onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(p => !p)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
           <button type="submit" className="btn-primary w-full py-3" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign in'}

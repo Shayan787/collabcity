@@ -5,6 +5,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 import useAuthStore from '@/store/auth';
+import { Eye, EyeOff } from 'lucide-react';
 
 const VIBE_TAGS = [
   { name: 'Developer', emoji: '💻' },
@@ -24,6 +25,7 @@ export default function RegisterPage() {
   const [form, setForm] = useState({
     name: '', username: '', email: '', password: '', city: 'Karachi', area: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [selectedTags, setSelectedTags] = useState([]);
   const [loading, setLoading] = useState(false);
   const { login } = useAuthStore();
@@ -47,12 +49,9 @@ export default function RegisterPage() {
     try {
       const { data } = await api.post('/auth/register', form);
       login(data.user, data.token);
-
-      // Save vibe tags if selected
       if (selectedTags.length > 0) {
         await api.put('/users/profile', { vibeTags: selectedTags }).catch(() => {});
       }
-
       toast.success('Welcome to CollabCity! 🎉');
       router.push('/discover');
     } catch (err) {
@@ -63,14 +62,14 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen bg-surface flex items-center justify-center px-4">
+    <main className="min-h-screen bg-surface flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link href="/" className="font-display text-2xl font-bold text-white tracking-tight">
             collab<span className="text-brand-400">city</span>
           </Link>
           <p className="text-gray-500 mt-2 text-sm">
-            {step === 1 ? 'Create your account' : 'What\'s your vibe?'}
+            {step === 1 ? 'Create your account' : "What's your vibe?"}
           </p>
           <div className="flex gap-2 justify-center mt-3">
             {[1, 2].map(s => (
@@ -100,8 +99,24 @@ export default function RegisterPage() {
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1.5">Password</label>
-              <input type="password" className="input" placeholder="min 8 characters" value={form.password}
-                onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required minLength={8} />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="input pr-12"
+                  placeholder="min 8 characters"
+                  value={form.password}
+                  onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                  required
+                  minLength={8}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(p => !p)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
