@@ -31,9 +31,7 @@ function UserCard({ user, onMessage }) {
       padding: '16px',
       marginBottom: '12px',
     }}>
-      {/* Top row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
-        {/* Avatar */}
         <div style={{ position: 'relative', flexShrink: 0 }}>
           <div style={{
             width: '48px', height: '48px', borderRadius: '14px',
@@ -55,7 +53,6 @@ function UserCard({ user, onMessage }) {
           }} />
         </div>
 
-        {/* Name + username */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
             <Link href={`/profile/${user.id}`} style={{
@@ -66,15 +63,12 @@ function UserCard({ user, onMessage }) {
             </Link>
             {user.isVerified && <span style={{ color: '#818cf8', fontSize: '11px' }}>✓</span>}
             {avgRating && (
-              <span style={{ color: '#fbbf24', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                ★ {avgRating}
-              </span>
+              <span style={{ color: '#fbbf24', fontSize: '11px' }}>★ {avgRating}</span>
             )}
           </div>
           <span style={{ color: '#6b7280', fontSize: '12px' }}>@{user.username}</span>
         </div>
 
-        {/* Chat button */}
         <button
           onClick={() => onMessage(user)}
           style={{
@@ -89,18 +83,16 @@ function UserCard({ user, onMessage }) {
         </button>
       </div>
 
-      {/* Bio */}
       {user.bio && (
         <p style={{
           color: '#9ca3af', fontSize: '12px', lineHeight: '1.5',
-          marginBottom: '10px', display: '-webkit-box',
-          WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          marginBottom: '10px', overflow: 'hidden',
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
         }}>
           {user.bio}
         </p>
       )}
 
-      {/* Tags + location */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', flex: 1 }}>
           {user.vibeTags?.slice(0, 2).map(vt => (
@@ -164,8 +156,6 @@ export default function DiscoverPage() {
 
   return (
     <div style={{ paddingBottom: '90px' }}>
-
-      {/* Sticky header */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 10,
         background: 'rgba(15,15,19,0.97)',
@@ -173,12 +163,10 @@ export default function DiscoverPage() {
         borderBottom: '1px solid rgba(42,42,53,0.5)',
         padding: '16px 16px 12px 16px',
       }}>
-        {/* Title */}
-        <h1 style={{ color: 'white', fontWeight: '700', fontSize: '22px', marginBottom: '12px', margin: '0 0 12px 0' }}>
+        <h1 style={{ color: 'white', fontWeight: '700', fontSize: '22px', margin: '0 0 12px 0' }}>
           Discover
         </h1>
 
-        {/* Search */}
         <div style={{ position: 'relative', marginBottom: '12px' }}>
           <Search size={16} style={{
             position: 'absolute', left: '14px', top: '50%',
@@ -195,77 +183,61 @@ export default function DiscoverPage() {
               borderRadius: '14px',
               padding: '12px 40px 12px 42px',
               color: 'white', fontSize: '14px',
-              outline: 'none',
-              colorScheme: 'dark',
+              outline: 'none', colorScheme: 'dark',
             }}
           />
           {search && (
             <button onClick={() => setSearch('')} style={{
               position: 'absolute', right: '12px', top: '50%',
               transform: 'translateY(-50%)', color: '#6b7280',
-              background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+              background: 'none', border: 'none', cursor: 'pointer',
             }}>
               <X size={15} />
             </button>
           )}
         </div>
 
-        {/* Filter chips — force scroll with overflow-x */}
         <div style={{
-          display: 'flex',
-          gap: '8px',
+          display: 'flex', gap: '8px',
           overflowX: 'scroll',
           WebkitOverflowScrolling: 'touch',
           paddingBottom: '4px',
           scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
         }}>
           {FILTERS.map(f => (
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
               style={{
-                flexShrink: 0,
-                whiteSpace: 'nowrap',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 14px',
-                borderRadius: '12px',
+                flexShrink: 0, whiteSpace: 'nowrap',
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '8px 14px', borderRadius: '12px',
                 border: filter === f.key ? '1px solid #6366f1' : '1px solid #2a2a35',
                 background: filter === f.key ? '#6366f1' : 'rgba(255,255,255,0.05)',
                 color: filter === f.key ? 'white' : '#9ca3af',
-                fontSize: '12px',
-                fontWeight: '500',
-                cursor: 'pointer',
+                fontSize: '12px', fontWeight: '500', cursor: 'pointer',
               }}
             >
-              <span>{f.emoji}</span>
-              <span>{f.label}</span>
+              {f.emoji} {f.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* People list */}
-      <div style={{ padding: '16px 16px 0 16px' }}>
+      <div style={{ padding: '16px' }}>
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
-            <div style={{
-              width: '24px', height: '24px', border: '2px solid #6366f1',
-              borderTopColor: 'transparent', borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-            }} />
+            <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 0', color: '#6b7280' }}>
-            <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔍</div>
-            <p style={{ fontSize: '14px', color: '#9ca3af', fontWeight: '500' }}>No people found</p>
-            <p style={{ fontSize: '12px', marginTop: '4px' }}>Try a different filter</p>
+          <div style={{ textAlign: 'center', padding: '80px 0' }}>
+            <p style={{ fontSize: '14px', color: '#9ca3af' }}>No people found</p>
           </div>
         ) : (
           <>
-            <p style={{ color: '#4b5563', fontSize: '12px', marginBottom: '12px', fontWeight: '500' }}>
-              {filtered.length} {filter === 'all' ? 'people' : filter + 's'} in your city
+            <p style={{ color: '#4b5563', fontSize: '12px', marginBottom: '12px' }}>
+              {filtered.length} people in your city
             </p>
             {filtered.map(user => (
               <UserCard key={user.id} user={user} onMessage={handleMessage} />
@@ -273,11 +245,6 @@ export default function DiscoverPage() {
           </>
         )}
       </div>
-
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        div::-webkit-scrollbar { display: none; }
-      `}</style>
     </div>
   );
 }
