@@ -34,7 +34,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link href="/" className="font-display text-2xl font-bold text-white tracking-tight">
-            collab<span className="text-brand-400">city</span>
+            <img src="/logo.png" alt="CollabCity" style={{ height: '36px', objectFit: 'contain' }} />
           </Link>
           <p className="text-gray-500 mt-2 text-sm">Sign in to your account</p>
         </div>

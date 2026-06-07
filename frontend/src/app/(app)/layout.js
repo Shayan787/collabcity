@@ -65,9 +65,8 @@ export default function AppLayout({ children }) {
       <aside className="fixed left-0 top-0 bottom-0 w-60 border-r border-border flex flex-col bg-card z-40 hidden md:flex">
         <div className="p-5 border-b border-border">
           <Link href="/discover" className="font-display text-xl font-bold text-white tracking-tight">
-            collab<span className="text-brand-400">city</span>
+            <img src="/logo.png" alt="CollabCity" style={{ height: '32px', objectFit: 'contain' }} />
           </Link>
-          <span className="ml-2 text-[10px] text-brand-400 bg-brand-500/10 px-1.5 py-0.5 rounded-md border border-brand-500/20 font-medium">v2</span>
         </div>
 
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
