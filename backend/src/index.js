@@ -14,6 +14,9 @@ const uploadRoutes       = require('./routes/upload');
 const milestoneRoutes    = require('./routes/milestones');
 const paymentRoutes      = require('./routes/payments');
 const matchRoutes        = require('./routes/match');
+const leaderboardRoutes  = require('./routes/leaderboard');
+const adminRoutes        = require('./routes/admin');
+const { startCleanupJob } = require('./services/cleanup');
 
 const app    = express();
 const server = http.createServer(app);
@@ -24,13 +27,7 @@ const io = new Server(server, {
 
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow all Vercel deployments, localhost, and the set FRONTEND_URL
-    if (
-      !origin ||
-      origin.includes('vercel.app') ||
-      origin.includes('localhost') ||
-      origin === process.env.FRONTEND_URL
-    ) {
+    if (!origin || origin.includes('vercel.app') || origin.includes('localhost') || origin === process.env.FRONTEND_URL) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -49,11 +46,16 @@ app.use('/api/upload',        uploadRoutes);
 app.use('/api/milestones',    milestoneRoutes);
 app.use('/api/payments',      paymentRoutes);
 app.use('/api/match',         matchRoutes);
+app.use('/api/leaderboard',   leaderboardRoutes);
+app.use('/api/admin',         adminRoutes);
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '2.0', timestamp: new Date() }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '3.0', timestamp: new Date() }));
 
 setupSocket(io);
 app.set('io', io);
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`🚀 CollabCity v2 backend on port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`🚀 CollabCity v3 backend on port ${PORT}`);
+  startCleanupJob();
+});

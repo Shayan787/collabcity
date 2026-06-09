@@ -7,16 +7,29 @@ import { useSocket } from '@/hooks/useSocket';
 import api from '@/lib/api';
 import {
   Compass, MessageCircle, Briefcase, User,
-  Bell, LogOut, Zap, Settings, SlidersHorizontal
+  Bell, LogOut, Zap, Settings, Trophy, Shield
 } from 'lucide-react';
 
 const navItems = [
-  { href: '/discover',  icon: Compass,          label: 'Discover' },
-  { href: '/match',     icon: Zap,              label: 'Smart Match' },
-  { href: '/chat',      icon: MessageCircle,    label: 'Chat' },
-  { href: '/projects',  icon: Briefcase,        label: 'Projects' },
-  { href: '/profile',   icon: User,             label: 'Profile' },
-  { href: '/settings',  icon: Settings,         label: 'Settings' },
+  { href: '/discover',     icon: Compass,        label: 'Discover' },
+  { href: '/match',        icon: Zap,            label: 'Smart Match', badge: 'AI' },
+  { href: '/chat',         icon: MessageCircle,  label: 'Chat' },
+  { href: '/projects',     icon: Briefcase,      label: 'Projects' },
+  { href: '/leaderboard',  icon: Trophy,         label: 'Leaderboard' },
+  { href: '/profile',      icon: User,           label: 'Profile' },
+  { href: '/settings',     icon: Settings,       label: 'Settings' },
+  { href: '/admin',        icon: Shield,         label: 'Admin' },
+];
+
+const mobileNav = [
+  { href: '/discover',     icon: Compass,        label: 'Discover' },
+  { href: '/match',        icon: Zap,            label: 'Match' },
+  { href: '/chat',         icon: MessageCircle,  label: 'Chat' },
+  { href: '/projects',     icon: Briefcase,      label: 'Projects' },
+  { href: '/leaderboard',  icon: Trophy,         label: 'Board' },
+  { href: '/profile',      icon: User,           label: 'Profile' },
+  { href: '/settings',     icon: Settings,       label: 'Settings' },
+  { href: '/notifications', icon: Bell,          label: 'Alerts' },
 ];
 
 export default function AppLayout({ children }) {
@@ -51,27 +64,17 @@ export default function AppLayout({ children }) {
     </div>
   );
 
-  const mobileNav = [
-  { href: '/discover',       icon: Compass,        label: 'Discover' },
-  { href: '/match',          icon: Zap,            label: 'Match' },
-  { href: '/chat',           icon: MessageCircle,  label: 'Chat' },
-  { href: '/projects',       icon: Briefcase,      label: 'Projects' },
-  { href: '/profile',        icon: User,           label: 'Profile' },
-  { href: '/settings',       icon: Settings,       label: 'Settings' },
-  { href: '/notifications',  icon: Bell,           label: 'Alerts', badge: unreadNotifs },
-];
   return (
     <div className="min-h-screen bg-surface flex">
-      {/* Sidebar */}
+      {/* Sidebar — desktop only */}
       <aside className="fixed left-0 top-0 bottom-0 w-60 border-r border-border flex flex-col bg-card z-40 hidden md:flex">
-        <div className="p-5 border-b border-border">
-          <Link href="/discover" className="font-display text-xl font-bold text-white tracking-tight">
-            <img src="/logo.png" alt="CollabCity" style={{ height: '65px', borderRadius: '20px', objectFit: 'contain' }} />
-          </Link>
+        <div className="p-5 border-b border-border flex items-center gap-2">
+          <img src="/logo.png" alt="CollabCity" style={{ height: '32px', objectFit: 'contain', mixBlendMode: 'screen' }} />
+          <span className="text-[10px] text-brand-400 bg-brand-500/10 px-1.5 py-0.5 rounded-md border border-brand-500/20 font-medium">v3</span>
         </div>
 
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {navItems.map(({ href, icon: Icon, label }) => (
+          {navItems.map(({ href, icon: Icon, label, badge }) => (
             <Link key={href} href={href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 pathname.startsWith(href)
@@ -81,8 +84,10 @@ export default function AppLayout({ children }) {
             >
               <Icon size={17} />
               {label}
-              {label === 'Smart Match' && (
-                <span className="ml-auto text-[9px] bg-brand-500/20 text-brand-400 px-1.5 py-0.5 rounded-full border border-brand-500/20">AI</span>
+              {badge && (
+                <span className="ml-auto text-[9px] bg-brand-500/20 text-brand-400 px-1.5 py-0.5 rounded-full border border-brand-500/20">
+                  {badge}
+                </span>
               )}
             </Link>
           ))}
@@ -132,20 +137,22 @@ export default function AppLayout({ children }) {
       </aside>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 px-2 py-2 flex justify-around items-center">
-  {mobileNav.map(({ href, icon: Icon, label, badge }) => (
-    <Link key={href} href={href}
-      className={`flex flex-col items-center justify-center p-2 rounded-xl transition-colors relative ${
-        pathname.startsWith(href) ? 'text-brand-400' : 'text-gray-600'
-      }`}
-    >
-      <Icon size={18} />
-      {badge > 0 && (
-        <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-brand-500 text-white text-[9px] flex items-center justify-center rounded-full">{badge}</span>
-      )}
-    </Link>
-  ))}
-</nav>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 flex justify-around items-center px-1 py-2">
+        {mobileNav.map(({ href, icon: Icon, label }) => (
+          <Link key={href} href={href}
+            className={`flex flex-col items-center justify-center p-2 rounded-xl transition-colors relative ${
+              pathname.startsWith(href) ? 'text-brand-400' : 'text-gray-600'
+            }`}
+          >
+            <Icon size={18} />
+            {href === '/notifications' && unreadNotifs > 0 && (
+              <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-brand-500 text-white text-[9px] flex items-center justify-center rounded-full">
+                {unreadNotifs}
+              </span>
+            )}
+          </Link>
+        ))}
+      </nav>
 
       <main className="flex-1 md:ml-60 pb-20 md:pb-0 page-enter w-full overflow-x-hidden">
         {children}

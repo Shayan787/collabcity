@@ -4,9 +4,96 @@ import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import useAuthStore from '@/store/auth';
 import { useSocket } from '@/hooks/useSocket';
-import { Send, ArrowLeft, Hash } from 'lucide-react';
+import { Send, ArrowLeft, Hash, Paperclip, X, FileText, Download, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
+
+function FileMessage({ msg }) {
+  const isExpired = !msg.fileUrl && msg.fileType;
+
+  if (isExpired) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '8px',
+        padding: '8px 12px', borderRadius: '10px',
+        background: 'rgba(239,68,68,0.08)',
+        border: '1px solid rgba(239,68,68,0.2)',
+      }}>
+        <Clock size={14} style={{ color: '#f87171', flexShrink: 0 }} />
+        <div>
+          <p style={{ color: '#f87171', fontSize: '12px', fontWeight: '500', margin: 0 }}>
+            File expired
+          </p>
+          <p style={{ color: '#9ca3af', fontSize: '11px', margin: 0 }}>
+            {msg.fileName || 'This file'} · Ask sender to resend
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const isImage = msg.fileType === 'image';
+
+  // Show expiry warning if file expires in less than 24 hours
+  const expiresAt = msg.fileExpiresAt ? new Date(msg.fileExpiresAt) : null;
+  const hoursLeft = expiresAt ? (expiresAt - new Date()) / (1000 * 60 * 60) : null;
+  const expiringSoon = hoursLeft !== null && hoursLeft < 24 && hoursLeft > 0;
+
+  return (
+    <div>
+      {isImage ? (
+        <div style={{ marginBottom: msg.content ? '6px' : '0' }}>
+          <img
+            src={msg.fileUrl}
+            alt={msg.fileName || 'image'}
+            style={{
+              maxWidth: '220px', maxHeight: '200px',
+              borderRadius: '12px', objectFit: 'cover',
+              display: 'block', cursor: 'pointer',
+            }}
+            onClick={() => window.open(msg.fileUrl, '_blank')}
+          />
+        </div>
+      ) : (
+        <a
+          href={msg.fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            background: 'rgba(255,255,255,0.08)', borderRadius: '10px',
+            padding: '8px 12px', marginBottom: msg.content ? '6px' : '0',
+            textDecoration: 'none', color: 'white',
+          }}
+        >
+          <FileText size={16} style={{ flexShrink: 0, color: '#818cf8' }} />
+          <span style={{ fontSize: '13px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {msg.fileName || 'File'}
+          </span>
+          <Download size={14} style={{ flexShrink: 0, color: '#6b7280' }} />
+        </a>
+      )}
+
+      {/* Expiring soon warning */}
+      {expiringSoon && (
+        <p style={{ fontSize: '10px', color: '#fbbf24', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+          <Clock size={9} /> Expires in {Math.ceil(hoursLeft)}h
+        </p>
+      )}
+
+      {/* Expiry info */}
+      {expiresAt && !expiringSoon && (
+        <p style={{ fontSize: '10px', color: '#4b5563', marginTop: '3px' }}>
+          Expires {formatDistanceToNow(expiresAt, { addSuffix: true })}
+        </p>
+      )}
+
+      {msg.content && (
+        <p style={{ fontSize: '14px', lineHeight: '1.5', margin: 0 }}>{msg.content}</p>
+      )}
+    </div>
+  );
+}
 
 export default function ChatRoomPage() {
   const { id } = useParams();
@@ -19,8 +106,11 @@ export default function ChatRoomPage() {
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [filePreview, setFilePreview] = useState(null);
   const messagesEndRef = useRef(null);
   const typingTimeout = useRef(null);
+  const fileInputRef = useRef(null);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -68,11 +158,56 @@ export default function ChatRoomPage() {
     };
   }, [socket, id, user]);
 
-  const sendMessage = () => {
-    if (!input.trim() || !socket) return;
-    socket.emit('message:send', { roomId: id, content: input.trim() });
+  const sendMessage = async () => {
+    if (!input.trim() && !filePreview) return;
+    if (!socket) return;
+
+    let fileUrl = null, fileType = null, fileName = null;
+    let cloudinaryId = null, fileExpiresAt = null;
+
+    if (filePreview) {
+      setUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', filePreview.file);
+        const { data } = await api.post('/upload/chat-file', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        fileUrl = data.url;
+        fileType = data.type;
+        fileName = data.name;
+        cloudinaryId = data.cloudinaryId;
+        fileExpiresAt = data.expiresAt;
+      } catch {
+        toast.error('File upload failed');
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+      setFilePreview(null);
+    }
+
+    socket.emit('message:send', {
+      roomId: id,
+      content: input.trim(),
+      fileUrl, fileType, fileName,
+      cloudinaryId, fileExpiresAt,
+    });
     setInput('');
     socket.emit('typing:stop', { roomId: id });
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File must be under 10MB');
+      return;
+    }
+    const isImage = file.type.startsWith('image/');
+    const previewUrl = isImage ? URL.createObjectURL(file) : null;
+    setFilePreview({ url: previewUrl, type: isImage ? 'image' : 'file', name: file.name, file });
+    e.target.value = '';
   };
 
   const handleInputChange = (e) => {
@@ -92,140 +227,253 @@ export default function ChatRoomPage() {
     return other?.user?.name || 'Chat';
   };
 
-  const getOtherUser = () => {
-    if (!room || room.type === 'COLLAB') return null;
-    return room.members?.find(m => m.user.id !== user?.id)?.user;
-  };
-
-  const otherUser = getOtherUser();
+  const otherUser = room?.type !== 'COLLAB'
+    ? room?.members?.find(m => m.user.id !== user?.id)?.user
+    : null;
 
   return (
-    <div className="flex flex-col h-screen md:h-[100dvh]">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}>
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card/50 backdrop-blur flex-shrink-0">
-        <button onClick={() => router.back()} className="text-gray-500 hover:text-white p-1">
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '12px',
+        padding: '12px 16px', borderBottom: '1px solid #2a2a35',
+        background: 'rgba(24,24,31,0.97)', backdropFilter: 'blur(12px)',
+        flexShrink: 0,
+      }}>
+        <button onClick={() => router.back()} style={{
+          background: 'none', border: 'none', color: '#6b7280',
+          cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center',
+        }}>
           <ArrowLeft size={20} />
         </button>
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+
+        <div style={{ position: 'relative', flexShrink: 0 }}>
           {room?.type === 'COLLAB' ? (
-            <div className="w-9 h-9 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 flex-shrink-0">
+            <div style={{
+              width: '38px', height: '38px', borderRadius: '50%',
+              background: 'rgba(168,85,247,0.2)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', color: '#a855f7',
+            }}>
               <Hash size={16} />
             </div>
           ) : (
-            <div className="relative flex-shrink-0">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-500/30 to-purple-500/30 flex items-center justify-center text-white font-semibold text-sm border border-white/10">
-                {getRoomTitle()[0]?.toUpperCase()}
-              </div>
-              {otherUser?.isOnline && <span className="absolute bottom-0 right-0 online-dot w-2 h-2" />}
+            <div style={{
+              width: '38px', height: '38px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.4), rgba(168,85,247,0.4))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'white', fontWeight: 'bold', fontSize: '15px',
+              border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden',
+            }}>
+              {otherUser?.avatar
+                ? <img src={otherUser.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : getRoomTitle()[0]?.toUpperCase()
+              }
             </div>
           )}
-          <div className="min-w-0">
-            <p className="font-semibold text-white text-sm truncate">{getRoomTitle()}</p>
-            <p className="text-xs text-gray-500">
-              {room?.type === 'COLLAB'
-                ? `${room.members?.length || 0} members`
-                : otherUser?.isOnline ? '🟢 Online' : 'Offline'
-              }
-            </p>
-          </div>
+          {otherUser?.isOnline && (
+            <span style={{
+              position: 'absolute', bottom: 0, right: 0,
+              width: '10px', height: '10px', borderRadius: '50%',
+              background: '#34d399', border: '2px solid #18181f',
+            }} />
+          )}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ color: 'white', fontWeight: '600', fontSize: '15px', margin: 0 }}>
+            {getRoomTitle()}
+          </p>
+          <p style={{ color: '#6b7280', fontSize: '12px', margin: 0 }}>
+            {room?.type === 'COLLAB'
+              ? `${room.members?.length || 0} members`
+              : otherUser?.isOnline ? '🟢 Online' : 'Offline'
+            }
+          </p>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-2">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
         {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+            <div style={{
+              width: '24px', height: '24px', border: '2px solid #6366f1',
+              borderTopColor: 'transparent', borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+            }} />
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-gray-500 text-sm">
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, color: '#6b7280', fontSize: '14px' }}>
             Say hi! 👋
           </div>
         ) : (
           messages.map((msg, i) => {
             const isMe = msg.sender?.id === user?.id;
             const prevMsg = messages[i - 1];
-            const showSenderInfo = !isMe && (i === 0 || prevMsg?.sender?.id !== msg.sender?.id);
+            const showName = i === 0 || prevMsg?.sender?.id !== msg.sender?.id;
 
             return (
-              <div
-                key={msg.id}
-                className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
-              >
-                {/* Avatar — only show for other person */}
-                {!isMe ? (
-                  <div className={`w-7 h-7 rounded-full bg-gradient-to-br from-brand-500/30 to-purple-500/30 flex items-center justify-center text-white text-xs font-semibold border border-white/10 flex-shrink-0 mb-0.5 ${showSenderInfo ? 'opacity-100' : 'opacity-0'}`}>
-                    {msg.sender?.avatar
-                      ? <img src={msg.sender.avatar} alt="" className="w-full h-full object-cover rounded-full" />
-                      : msg.sender?.name?.[0]?.toUpperCase()
-                    }
-                  </div>
-                ) : (
-                  // Spacer so "my" messages don't stretch full width
-                  <div className="w-7 flex-shrink-0" />
+              <div key={msg.id} style={{
+                display: 'flex', flexDirection: 'column',
+                alignItems: isMe ? 'flex-end' : 'flex-start',
+                marginTop: showName ? '12px' : '2px',
+              }}>
+                {showName && (
+                  <p style={{
+                    fontSize: '11px', fontWeight: '500', marginBottom: '4px',
+                    color: isMe ? '#818cf8' : '#9ca3af',
+                    paddingLeft: isMe ? 0 : '4px',
+                    paddingRight: isMe ? '4px' : 0,
+                  }}>
+                    {isMe ? 'You' : msg.sender?.name}
+                  </p>
                 )}
 
-                {/* Bubble */}
-                <div className={`flex flex-col gap-0.5 max-w-[75%] md:max-w-[60%] ${isMe ? 'items-end' : 'items-start'}`}>
-                  {/* Sender name — only for group/collab rooms */}
-                  {showSenderInfo && room?.type === 'COLLAB' && (
-                    <span className="text-xs text-gray-500 ml-1">{msg.sender?.name}</span>
+                <div style={{
+                  maxWidth: '75%',
+                  padding: msg.fileType ? '8px 10px' : '10px 14px',
+                  borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                  background: isMe ? '#6366f1' : '#1e1e2a',
+                  border: isMe ? 'none' : '1px solid #2a2a35',
+                  color: 'white', fontSize: '14px', lineHeight: '1.5',
+                  wordBreak: 'break-word',
+                }}>
+                  {msg.fileType ? (
+                    <FileMessage msg={msg} />
+                  ) : (
+                    msg.content
                   )}
-                  {/* Name above bubble in DMs too, for clarity */}
-                  {showSenderInfo && room?.type !== 'COLLAB' && (
-                    <span className="text-xs text-gray-500 ml-1">{msg.sender?.name}</span>
-                  )}
-
-                  <div className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed break-words ${
-                    isMe
-                      ? 'bg-brand-500 text-white rounded-br-sm'
-                      : 'bg-card border border-border text-gray-100 rounded-bl-sm'
-                  }`}>
-                    {msg.content}
-                  </div>
-
-                  <span className="text-[10px] text-gray-600 px-1">
-                    {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
-                  </span>
                 </div>
+
+                <p style={{
+                  fontSize: '10px', color: '#4b5563', marginTop: '3px',
+                  paddingLeft: isMe ? 0 : '4px', paddingRight: isMe ? '4px' : 0,
+                }}>
+                  {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
+                </p>
               </div>
             );
           })
         )}
 
-        {/* Typing indicator */}
         {typing.length > 0 && (
-          <div className="flex items-center gap-2 text-gray-500 text-xs pl-9">
-            <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-3 py-2 flex gap-1">
-              <span className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          <div style={{ display: 'flex', marginTop: '8px' }}>
+            <div style={{
+              padding: '10px 14px', borderRadius: '18px 18px 18px 4px',
+              background: '#1e1e2a', border: '1px solid #2a2a35',
+              display: 'flex', gap: '4px', alignItems: 'center',
+            }}>
+              {[0, 1, 2].map(i => (
+                <span key={i} style={{
+                  width: '6px', height: '6px', borderRadius: '50%',
+                  background: '#6b7280', display: 'inline-block',
+                  animation: `bounce 1s infinite ${i * 150}ms`,
+                }} />
+              ))}
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="p-3 md:p-4 border-t border-border bg-card/50 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <input
-            className="input flex-1 py-2.5 text-sm"
-            placeholder="Type a message..."
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!input.trim()}
-            className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-brand-500 hover:bg-brand-600 disabled:opacity-40 text-white rounded-xl transition-all active:scale-95"
-          >
-            <Send size={16} />
+      {/* File preview bar */}
+      {filePreview && (
+        <div style={{
+          padding: '8px 16px', borderTop: '1px solid #2a2a35',
+          background: 'rgba(24,24,31,0.97)', display: 'flex', alignItems: 'center', gap: '10px',
+        }}>
+          {filePreview.type === 'image' ? (
+            <img src={filePreview.url} alt="" style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover' }} />
+          ) : (
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '8px',
+              background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <FileText size={20} style={{ color: '#818cf8' }} />
+            </div>
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ color: 'white', fontSize: '13px', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+              {filePreview.name}
+            </p>
+            <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>
+              Will expire in 7 days
+            </p>
+          </div>
+          <button onClick={() => setFilePreview(null)} style={{
+            background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: '4px', display: 'flex',
+          }}>
+            <X size={16} />
           </button>
         </div>
+      )}
+
+      {/* Input bar */}
+      <div style={{
+        padding: '12px 16px', borderTop: '1px solid #2a2a35',
+        background: 'rgba(24,24,31,0.97)', flexShrink: 0,
+        display: 'flex', gap: '8px', alignItems: 'center',
+      }}>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          style={{
+            width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0,
+            background: 'rgba(255,255,255,0.05)', border: '1px solid #2a2a35',
+            color: '#6b7280', cursor: 'pointer', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <Paperclip size={16} />
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,.pdf,.doc,.docx,.txt,.zip"
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+        />
+
+        <input
+          value={input}
+          onChange={handleInputChange}
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+          placeholder={filePreview ? 'Add a caption...' : 'Type a message...'}
+          style={{
+            flex: 1, background: 'rgba(255,255,255,0.05)',
+            border: '1px solid #2a2a35', borderRadius: '24px',
+            padding: '11px 18px', color: 'white', fontSize: '14px',
+            outline: 'none', colorScheme: 'dark',
+          }}
+        />
+
+        <button
+          onClick={sendMessage}
+          disabled={(!input.trim() && !filePreview) || uploading}
+          style={{
+            width: '42px', height: '42px', borderRadius: '50%', flexShrink: 0,
+            background: (input.trim() || filePreview) && !uploading ? '#6366f1' : '#2a2a35',
+            border: 'none', color: 'white',
+            cursor: (input.trim() || filePreview) && !uploading ? 'pointer' : 'not-allowed',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 0.2s',
+          }}
+        >
+          {uploading
+            ? <div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            : <Send size={16} />
+          }
+        </button>
       </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
+        }
+      `}</style>
     </div>
   );
 }

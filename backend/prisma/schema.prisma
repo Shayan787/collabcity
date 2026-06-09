@@ -95,11 +95,16 @@ model RoomMember {
 }
 
 model Message {
-  id        String   @id @default(uuid())
-  roomId    String
-  senderId  String
-  content   String
-  createdAt DateTime @default(now())
+  id            String    @id @default(uuid())
+  roomId        String
+  senderId      String
+  content       String
+  fileUrl       String?
+  fileType      String?
+  fileName      String?
+  cloudinaryId  String?
+  fileExpiresAt DateTime?
+  createdAt     DateTime  @default(now())
   room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
   sender    User     @relation("SentMessages", fields: [senderId], references: [id])
 }
@@ -188,16 +193,22 @@ model Rating {
 }
 
 model Payment {
-  id          String        @id @default(uuid())
-  userId      String
-  type        PaymentType
-  amount      Float
-  currency    String        @default("PKR")
-  status      PaymentStatus @default(PENDING)
-  milestoneId String?
-  metadata    Json?
-  createdAt   DateTime      @default(now())
-  user        User          @relation(fields: [userId], references: [id])
+  id             String        @id @default(uuid())
+  userId         String
+  type           PaymentType
+  amount         Float
+  currency       String        @default("PKR")
+  status         PaymentStatus @default(PENDING)
+  milestoneId    String?
+  metadata       Json?
+  phoneNumber    String?
+  paymentMethod  String?
+  adminNote      String?
+  approvedAt     DateTime?
+  createdAt      DateTime      @default(now())
+  user           User          @relation(fields: [userId], references: [id])
+  milestone      Milestone?    @relation(fields: [milestoneId], references: [id])
+}
   milestone   Milestone?    @relation(fields: [milestoneId], references: [id])
 }
 

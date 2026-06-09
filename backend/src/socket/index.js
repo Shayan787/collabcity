@@ -50,8 +50,8 @@ const setupSocket = (io) => {
     });
 
     // Handle sending a message
-    socket.on('message:send', async ({ roomId, content }) => {
-      if (!content?.trim()) return;
+    socket.on('message:send', async ({ roomId, content, fileUrl, fileType, fileName, cloudinaryId, fileExpiresAt }) => {
+      if (!content?.trim() && !fileUrl) return;
 
       const member = await prisma.roomMember.findUnique({
         where: { roomId_userId: { roomId, userId } },
@@ -59,7 +59,16 @@ const setupSocket = (io) => {
       if (!member) return socket.emit('error', { message: 'Not a member of this room' });
 
       const message = await prisma.message.create({
-        data: { roomId, senderId: userId, content: content.trim() },
+        data: {
+          roomId,
+          senderId: userId,
+          content: content?.trim() || '',
+          fileUrl: fileUrl || null,
+          fileType: fileType || null,
+          fileName: fileName || null,
+          cloudinaryId: cloudinaryId || null,
+          fileExpiresAt: fileExpiresAt ? new Date(fileExpiresAt) : null,
+        },
         include: { sender: { select: { id: true, name: true, username: true, avatar: true } } },
       });
 
@@ -81,6 +90,18 @@ const setupSocket = (io) => {
               data: { roomId },
             },
           });
+
+          // Send email to offline user
+          const offlineUser = await prisma.user.findUnique({ where: { id: m.userId } });
+          const sender = await prisma.user.findUnique({ where: { id: userId } });
+          if (offlineUser && sender) {
+            const preview = content.length > 60 ? content.slice(0, 60) + '...' : content;
+            sendEmail({
+              to: offlineUser.email,
+              template: 'newMessage',
+              data: { senderName: sender.name, preview, roomId },
+            });
+          }
         }
       }
     });

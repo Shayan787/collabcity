@@ -4,86 +4,69 @@ const auth = require('../middleware/auth');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Simulated payment gateway (replace with JazzCash/EasyPaisa/Stripe in production)
-const simulatePayment = async ({ amount, currency, description }) => {
-  // In production: call JazzCash/EasyPaisa API here
-  // For now simulate a 95% success rate
-  const success = Math.random() > 0.05;
-  return { success, transactionId: `TXN_${Date.now()}` };
-};
-
-// POST /api/payments/verify-badge — purchase verified badge (499 PKR/month)
-router.post('/verify-badge', auth, async (req, res) => {
+// POST /api/payments/request — user submits a payment request
+router.post('/request', auth, async (req, res) => {
   try {
-    const PRICE = 499;
-    const result = await simulatePayment({ amount: PRICE, currency: 'PKR', description: 'Verified Badge - 1 Month' });
+    const { type, phoneNumber, paymentMethod } = req.body;
 
-    if (!result.success) return res.status(402).json({ message: 'Payment failed. Please try again.' });
+    if (!type) return res.status(400).json({ message: 'Payment type required' });
+    if (!phoneNumber) return res.status(400).json({ message: 'Phone number required' });
+    if (!paymentMethod) return res.status(400).json({ message: 'Payment method required' });
 
-    const expiresAt = new Date();
-    expiresAt.setMonth(expiresAt.getMonth() + 1);
+    const PRICES = {
+      VERIFICATION: 499,
+      BOOST: 500,
+    };
 
-    await prisma.user.update({
-      where: { id: req.user.id },
-      data: { isVerified: true, verificationPaidAt: new Date() },
+    const amount = PRICES[type];
+    if (!amount) return res.status(400).json({ message: 'Invalid payment type' });
+
+    // Check if user already has a pending request for same type
+    const existing = await prisma.payment.findFirst({
+      where: { userId: req.user.id, type, status: 'PENDING' },
     });
+    if (existing) {
+      return res.status(400).json({ message: 'You already have a pending request for this. Please wait for admin approval.' });
+    }
 
-    await prisma.payment.create({
+    const payment = await prisma.payment.create({
       data: {
         userId: req.user.id,
-        type: 'VERIFICATION',
-        amount: PRICE,
+        type,
+        amount,
         currency: 'PKR',
-        status: 'COMPLETED',
-        metadata: { transactionId: result.transactionId },
+        status: 'PENDING',
+        phoneNumber,
+        paymentMethod,
+        metadata: {
+          requestedAt: new Date(),
+          userName: req.user.name,
+          userEmail: req.user.email,
+        },
       },
     });
 
-    res.json({ message: 'Verified badge activated! ✓', transactionId: result.transactionId });
+    // Notify via in-app notification to admin (we store it as a system notification)
+    await prisma.notification.create({
+      data: {
+        userId: req.user.id,
+        type: 'PAYMENT_REQUESTED',
+        message: `Your ${type === 'VERIFICATION' ? 'verified badge' : 'profile boost'} request has been submitted. Admin will approve within 24 hours.`,
+        data: { paymentId: payment.id },
+      },
+    });
+
+    res.status(201).json({
+      message: 'Payment request submitted! Admin will approve within 24 hours.',
+      payment,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// POST /api/payments/boost — purchase profile boost (500 PKR/week)
-router.post('/boost', auth, async (req, res) => {
-  try {
-    const PRICE = 500;
-    const result = await simulatePayment({ amount: PRICE, currency: 'PKR', description: 'Profile Boost - 1 Week' });
-
-    if (!result.success) return res.status(402).json({ message: 'Payment failed. Please try again.' });
-
-    const boostExpiresAt = new Date();
-    boostExpiresAt.setDate(boostExpiresAt.getDate() + 7);
-
-    await prisma.user.update({
-      where: { id: req.user.id },
-      data: { boostExpiresAt },
-    });
-
-    await prisma.payment.create({
-      data: {
-        userId: req.user.id,
-        type: 'BOOST',
-        amount: PRICE,
-        currency: 'PKR',
-        status: 'COMPLETED',
-        metadata: { transactionId: result.transactionId, boostExpiresAt },
-      },
-    });
-
-    res.json({
-      message: 'Profile boosted for 7 days! 🚀',
-      boostExpiresAt,
-      transactionId: result.transactionId,
-    });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// GET /api/payments/my — payment history
+// GET /api/payments/my — get my payment history
 router.get('/my', auth, async (req, res) => {
   try {
     const payments = await prisma.payment.findMany({
@@ -92,6 +75,39 @@ router.get('/my', auth, async (req, res) => {
       include: { milestone: { select: { title: true } } },
     });
     res.json(payments);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/payments/status — check if user has active services
+router.get('/status', auth, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { isVerified: true, boostExpiresAt: true },
+    });
+
+    const isBoosted = user.boostExpiresAt && new Date(user.boostExpiresAt) > new Date();
+    const boostDaysLeft = isBoosted
+      ? Math.ceil((new Date(user.boostExpiresAt) - new Date()) / (1000 * 60 * 60 * 24))
+      : 0;
+
+    // Check pending requests
+    const pendingVerify = await prisma.payment.findFirst({
+      where: { userId: req.user.id, type: 'VERIFICATION', status: 'PENDING' },
+    });
+    const pendingBoost = await prisma.payment.findFirst({
+      where: { userId: req.user.id, type: 'BOOST', status: 'PENDING' },
+    });
+
+    res.json({
+      isVerified: user.isVerified,
+      isBoosted,
+      boostDaysLeft,
+      pendingVerify: !!pendingVerify,
+      pendingBoost: !!pendingBoost,
+    });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
