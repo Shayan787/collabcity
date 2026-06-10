@@ -1,7 +1,7 @@
 const { Resend } = require('resend');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = 'CollabCity <noreply@collabcity.app>';
+const FROM = 'CollabCity <onboarding@resend.dev>';
 
 const sendOTPEmail = async ({ to, otp, name }) => {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'skip') {
