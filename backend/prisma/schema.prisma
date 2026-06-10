@@ -8,35 +8,35 @@ datasource db {
 }
 
 model User {
-  id                 String    @id @default(uuid())
-  email              String    @unique
-  password           String?
-  name               String
-  username           String    @unique
-  bio                String?
-  avatar             String?
-  city               String?
-  area               String?
-  isVerified         Boolean   @default(false)
-  isOnline           Boolean   @default(false)
-  lastSeen           DateTime  @default(now())
+  id                String    @id @default(uuid())
+  email             String    @unique
+  password          String?
+  name              String
+  username          String    @unique
+  bio               String?
+  avatar            String?
+  city              String?
+  area              String?
+  isVerified        Boolean   @default(false)
+  isOnline          Boolean   @default(false)
+  lastSeen          DateTime  @default(now())
   verificationPaidAt DateTime?
-  boostExpiresAt     DateTime?
-  matchPreferences   Json?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  boostExpiresAt    DateTime?
+  matchPreferences  Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  vibeTags        UserVibeTag[]
-  skills          UserSkill[]
-  sentMessages    Message[]     @relation("SentMessages")
-  rooms           RoomMember[]
-  createdRooms    Room[]        @relation("RoomCreator")
-  postedProjects  Project[]     @relation("ProjectPoster")
-  applications    Application[]
-  ratingsGiven    Rating[]      @relation("RatingGiver")
-  ratingsReceived Rating[]      @relation("RatingReceiver")
-  notifications   Notification[]
-  payments        Payment[]
+  vibeTags          UserVibeTag[]
+  skills            UserSkill[]
+  sentMessages      Message[]        @relation("SentMessages")
+  rooms             RoomMember[]
+  createdRooms      Room[]           @relation("RoomCreator")
+  postedProjects    Project[]        @relation("ProjectPoster")
+  applications      Application[]
+  ratingsGiven      Rating[]         @relation("RatingGiver")
+  ratingsReceived   Rating[]         @relation("RatingReceiver")
+  notifications     Notification[]
+  payments          Payment[]
 }
 
 model VibeTag {
@@ -105,8 +105,8 @@ model Message {
   cloudinaryId  String?
   fileExpiresAt DateTime?
   createdAt     DateTime  @default(now())
-  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  sender User @relation("SentMessages", fields: [senderId], references: [id])
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id])
 }
 
 model Project {
@@ -150,8 +150,8 @@ model Milestone {
   status      MilestoneStatus @default(PENDING)
   order       Int             @default(0)
   createdAt   DateTime        @default(now())
-  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  payments Payment[]
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  payments    Payment[]
 }
 
 enum MilestoneStatus {
@@ -169,8 +169,8 @@ model Application {
   pitch       String
   status      ApplicationStatus @default(PENDING)
   createdAt   DateTime          @default(now())
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  applicant User    @relation(fields: [applicantId], references: [id])
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  applicant   User              @relation(fields: [applicantId], references: [id])
   @@unique([projectId, applicantId])
 }
 
@@ -187,27 +187,27 @@ model Rating {
   score      Int
   comment    String?
   createdAt  DateTime @default(now())
-  giver    User @relation("RatingGiver", fields: [giverId], references: [id])
-  receiver User @relation("RatingReceiver", fields: [receiverId], references: [id])
+  giver      User     @relation("RatingGiver", fields: [giverId], references: [id])
+  receiver   User     @relation("RatingReceiver", fields: [receiverId], references: [id])
   @@unique([giverId, receiverId])
 }
 
 model Payment {
-  id            String        @id @default(uuid())
-  userId        String
-  type          PaymentType
-  amount        Float
-  currency      String        @default("PKR")
-  status        PaymentStatus @default(PENDING)
-  milestoneId   String?
-  metadata      Json?
-  phoneNumber   String?
-  paymentMethod String?
-  adminNote     String?
-  approvedAt    DateTime?
-  createdAt     DateTime      @default(now())
-  user      User       @relation(fields: [userId], references: [id])
-  milestone Milestone? @relation(fields: [milestoneId], references: [id])
+  id             String        @id @default(uuid())
+  userId         String
+  type           PaymentType
+  amount         Float
+  currency       String        @default("PKR")
+  status         PaymentStatus @default(PENDING)
+  milestoneId    String?
+  metadata       Json?
+  phoneNumber    String?
+  paymentMethod  String?
+  adminNote      String?
+  approvedAt     DateTime?
+  createdAt      DateTime      @default(now())
+  user           User          @relation(fields: [userId], references: [id])
+  milestone      Milestone?    @relation(fields: [milestoneId], references: [id])
 }
 
 enum PaymentType {
@@ -232,5 +232,16 @@ model Notification {
   read      Boolean  @default(false)
   data      Json?
   createdAt DateTime @default(now())
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OTP {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
 }

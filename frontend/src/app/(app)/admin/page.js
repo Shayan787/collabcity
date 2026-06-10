@@ -270,6 +270,12 @@ export default function AdminPage() {
                         <Phone size={10} /> {p.phoneNumber}
                       </span>
                     </div>
+                    {p.metadata?.transactionId && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500">Transaction ID</span>
+                        <span className="text-emerald-400 font-mono font-medium">{p.metadata.transactionId}</span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-gray-500">Requested</span>
                       <span className="text-gray-400">

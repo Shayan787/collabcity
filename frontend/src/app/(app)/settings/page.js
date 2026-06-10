@@ -13,6 +13,7 @@ export default function SettingsPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(null); // 'VERIFICATION' or 'BOOST'
   const [phoneNumber, setPhoneNumber] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('JazzCash');
+  const [transactionId, setTransactionId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef();
 
@@ -50,10 +51,12 @@ export default function SettingsPage() {
         type: showPaymentModal,
         phoneNumber,
         paymentMethod,
+        transactionId,
       });
       toast.success(data.message);
       setShowPaymentModal(null);
       setPhoneNumber('');
+      setTransactionId('');
       // Refresh status
       const s = await api.get('/payments/status');
       setStatus(s.data);
@@ -256,7 +259,7 @@ export default function SettingsPage() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500">JazzCash / EasyPaisa</span>
-                  <span className="text-xs font-bold text-white">0331-2518828</span>
+                  <span className="text-xs font-bold text-white">0300-0000000</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500">Amount</span>
@@ -288,7 +291,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Phone number */}
-            <div className="relative mb-4">
+            <div className="relative mb-3">
               <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
               <input
                 className="input pl-10 text-sm"
@@ -296,6 +299,17 @@ export default function SettingsPage() {
                 value={phoneNumber}
                 onChange={e => setPhoneNumber(e.target.value)}
                 type="tel"
+              />
+            </div>
+
+            {/* Transaction ID */}
+            <div className="relative mb-4">
+              <CreditCard size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+              <input
+                className="input pl-10 text-sm"
+                placeholder="Transaction ID from JazzCash/EasyPaisa"
+                value={transactionId}
+                onChange={e => setTransactionId(e.target.value)}
               />
             </div>
 

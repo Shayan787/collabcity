@@ -7,11 +7,12 @@ const prisma = new PrismaClient();
 // POST /api/payments/request — user submits a payment request
 router.post('/request', auth, async (req, res) => {
   try {
-    const { type, phoneNumber, paymentMethod } = req.body;
+    const { type, phoneNumber, paymentMethod, transactionId } = req.body;
 
     if (!type) return res.status(400).json({ message: 'Payment type required' });
     if (!phoneNumber) return res.status(400).json({ message: 'Phone number required' });
     if (!paymentMethod) return res.status(400).json({ message: 'Payment method required' });
+    if (!transactionId) return res.status(400).json({ message: 'Transaction ID required' });
 
     const PRICES = {
       VERIFICATION: 499,
@@ -42,6 +43,7 @@ router.post('/request', auth, async (req, res) => {
           requestedAt: new Date(),
           userName: req.user.name,
           userEmail: req.user.email,
+          transactionId,
         },
       },
     });
