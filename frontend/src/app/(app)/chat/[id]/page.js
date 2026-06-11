@@ -4,11 +4,97 @@ import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import useAuthStore from '@/store/auth';
 import { useSocket } from '@/hooks/useSocket';
-import { Send, ArrowLeft, Hash, Paperclip, X, FileText, Download, Clock } from 'lucide-react';
+import { Send, ArrowLeft, Hash, Paperclip, X, FileText, Download, Clock, ZoomIn } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 
+// Full screen image viewer
+function ImageViewer({ url, fileName, onClose }) {
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName || 'image.jpg';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    } catch {
+      toast.error('Download failed');
+    }
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.95)',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      {/* Top bar */}
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'absolute', top: 0, left: 0, right: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '16px', background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(8px)',
+        }}
+      >
+        <p style={{ color: 'white', fontSize: '14px', fontWeight: '500', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, marginRight: '16px' }}>
+          {fileName || 'Image'}
+        </p>
+        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+          <button
+            onClick={handleDownload}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              background: '#6366f1', color: 'white', border: 'none',
+              borderRadius: '10px', padding: '8px 14px', fontSize: '13px',
+              fontWeight: '600', cursor: 'pointer',
+            }}
+          >
+            <Download size={14} /> Download
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'rgba(255,255,255,0.1)', color: 'white',
+              border: 'none', borderRadius: '10px', padding: '8px 12px',
+              cursor: 'pointer', display: 'flex', alignItems: 'center',
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* Image */}
+      <img
+        src={url}
+        alt={fileName || 'image'}
+        onClick={e => e.stopPropagation()}
+        style={{
+          maxWidth: '95vw', maxHeight: '85vh',
+          objectFit: 'contain', borderRadius: '8px',
+        }}
+      />
+
+      {/* Tap outside hint */}
+      <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px', marginTop: '16px' }}>
+        Tap outside to close
+      </p>
+    </div>
+  );
+}
+
 function FileMessage({ msg }) {
+  const [viewerOpen, setViewerOpen] = useState(false);
   const isExpired = !msg.fileUrl && msg.fileType;
 
   if (isExpired) {
@@ -33,55 +119,113 @@ function FileMessage({ msg }) {
   }
 
   const isImage = msg.fileType === 'image';
-
-  // Show expiry warning if file expires in less than 24 hours
   const expiresAt = msg.fileExpiresAt ? new Date(msg.fileExpiresAt) : null;
   const hoursLeft = expiresAt ? (expiresAt - new Date()) / (1000 * 60 * 60) : null;
   const expiringSoon = hoursLeft !== null && hoursLeft < 24 && hoursLeft > 0;
 
+  const handleFileDownload = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(msg.fileUrl);
+      const blob = await response.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      // Use original filename to preserve extension
+      a.download = msg.fileName || 'download';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    } catch {
+      toast.error('Download failed');
+    }
+  };
+
   return (
     <div>
       {isImage ? (
-        <div style={{ marginBottom: msg.content ? '6px' : '0' }}>
-          <img
-            src={msg.fileUrl}
-            alt={msg.fileName || 'image'}
-            style={{
-              maxWidth: '220px', maxHeight: '200px',
-              borderRadius: '12px', objectFit: 'cover',
-              display: 'block', cursor: 'pointer',
+        <div style={{ marginBottom: msg.content ? '6px' : '0', position: 'relative' }}>
+          <div style={{ position: 'relative', display: 'inline-block', cursor: 'pointer' }}
+            onClick={() => setViewerOpen(true)}
+          >
+            <img
+              src={msg.fileUrl}
+              alt={msg.fileName || 'image'}
+              style={{
+                maxWidth: '220px', maxHeight: '200px',
+                borderRadius: '12px', objectFit: 'cover',
+                display: 'block',
+              }}
+            />
+            {/* Zoom hint overlay */}
+            <div style={{
+              position: 'absolute', inset: 0, borderRadius: '12px',
+              background: 'rgba(0,0,0,0)', transition: 'background 0.2s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
-            onClick={() => window.open(msg.fileUrl, '_blank')}
-          />
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.3)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0)'}
+            >
+              <ZoomIn size={24} style={{ color: 'white', opacity: 0, transition: 'opacity 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+              />
+            </div>
+          </div>
+          {/* Full screen viewer */}
+          {viewerOpen && (
+            <ImageViewer
+              url={msg.fileUrl}
+              fileName={msg.fileName}
+              onClose={() => setViewerOpen(false)}
+            />
+          )}
         </div>
       ) : (
-        <a
-          href={msg.fileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+        <div
           style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
+            display: 'flex', alignItems: 'center', gap: '10px',
             background: 'rgba(255,255,255,0.08)', borderRadius: '10px',
-            padding: '8px 12px', marginBottom: msg.content ? '6px' : '0',
-            textDecoration: 'none', color: 'white',
+            padding: '10px 12px', marginBottom: msg.content ? '6px' : '0',
           }}
         >
-          <FileText size={16} style={{ flexShrink: 0, color: '#818cf8' }} />
-          <span style={{ fontSize: '13px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {msg.fileName || 'File'}
-          </span>
-          <Download size={14} style={{ flexShrink: 0, color: '#6b7280' }} />
-        </a>
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '8px', flexShrink: 0,
+            background: 'rgba(99,102,241,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <FileText size={16} style={{ color: '#818cf8' }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{
+              color: 'white', fontSize: '13px', fontWeight: '500', margin: 0,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {msg.fileName || 'File'}
+            </p>
+            <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>
+              {msg.fileName?.split('.').pop()?.toUpperCase() || 'FILE'}
+            </p>
+          </div>
+          <button
+            onClick={handleFileDownload}
+            style={{
+              background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.3)',
+              borderRadius: '8px', padding: '6px 10px', color: '#818cf8',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+              fontSize: '12px', fontWeight: '500', flexShrink: 0,
+            }}
+          >
+            <Download size={13} /> Save
+          </button>
+        </div>
       )}
 
-      {/* Expiring soon warning */}
       {expiringSoon && (
         <p style={{ fontSize: '10px', color: '#fbbf24', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '3px' }}>
           <Clock size={9} /> Expires in {Math.ceil(hoursLeft)}h
         </p>
       )}
 
-      {/* Expiry info */}
       {expiresAt && !expiringSoon && (
         <p style={{ fontSize: '10px', color: '#4b5563', marginTop: '3px' }}>
           Expires {formatDistanceToNow(expiresAt, { addSuffix: true })}
@@ -188,8 +332,7 @@ export default function ChatRoomPage() {
     }
 
     socket.emit('message:send', {
-      roomId: id,
-      content: input.trim(),
+      roomId: id, content: input.trim(),
       fileUrl, fileType, fileName,
       cloudinaryId, fileExpiresAt,
     });
@@ -339,11 +482,7 @@ export default function ChatRoomPage() {
                   color: 'white', fontSize: '14px', lineHeight: '1.5',
                   wordBreak: 'break-word',
                 }}>
-                  {msg.fileType ? (
-                    <FileMessage msg={msg} />
-                  ) : (
-                    msg.content
-                  )}
+                  {msg.fileType ? <FileMessage msg={msg} /> : msg.content}
                 </div>
 
                 <p style={{
@@ -397,9 +536,7 @@ export default function ChatRoomPage() {
             <p style={{ color: 'white', fontSize: '13px', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
               {filePreview.name}
             </p>
-            <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>
-              Will expire in 7 days
-            </p>
+            <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>Will expire in 7 days</p>
           </div>
           <button onClick={() => setFilePreview(null)} style={{
             background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: '4px', display: 'flex',
@@ -415,29 +552,21 @@ export default function ChatRoomPage() {
         background: 'rgba(24,24,31,0.97)', flexShrink: 0,
         display: 'flex', gap: '8px', alignItems: 'center',
       }}>
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          style={{
-            width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0,
-            background: 'rgba(255,255,255,0.05)', border: '1px solid #2a2a35',
-            color: '#6b7280', cursor: 'pointer', display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-          }}
-        >
+        <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{
+          width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0,
+          background: 'rgba(255,255,255,0.05)', border: '1px solid #2a2a35',
+          color: '#6b7280', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
           <Paperclip size={16} />
         </button>
         <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*,.pdf,.doc,.docx,.txt,.zip"
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
+          ref={fileInputRef} type="file"
+          accept="image/*,.pdf,.doc,.docx,.txt,.zip,.xls,.xlsx,.ppt,.pptx"
+          style={{ display: 'none' }} onChange={handleFileChange}
         />
 
         <input
-          value={input}
-          onChange={handleInputChange}
+          value={input} onChange={handleInputChange}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
           placeholder={filePreview ? 'Add a caption...' : 'Type a message...'}
           style={{
