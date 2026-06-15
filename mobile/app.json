@@ -38,7 +38,8 @@
           "photosPermission": "CollabCity needs access to your photos.",
           "cameraPermission": "CollabCity needs access to your camera."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
