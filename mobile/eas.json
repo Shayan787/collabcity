@@ -8,13 +8,13 @@
       "android": {
         "buildType": "apk"
       },
-      "env": {},
-      "node": "20.0.0"
+      "node": "20.19.4"
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
-      }
+      },
+      "node": "20.19.4"
     }
   }
 }
