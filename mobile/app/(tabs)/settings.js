@@ -17,7 +17,7 @@ export default function SettingsScreen() {
   const [showModal, setShowModal] = useState(null);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [transactionId, setTransactionId] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('JazzCash');
+  const [paymentMethod, setPaymentMethod] = useState('NayaPay');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -211,8 +211,8 @@ export default function SettingsScreen() {
             <View style={styles.instructionBox}>
               <Text style={styles.instructionTitle}>Send payment first:</Text>
               <View style={styles.instructionRow}>
-                <Text style={styles.instructionLabel}>JazzCash / EasyPaisa</Text>
-                <Text style={styles.instructionValue}>0300-0000000</Text>
+                <Text style={styles.instructionLabel}>NayaPay / SadaPay</Text>
+                <Text style={styles.instructionValue}>03108574686</Text>
               </View>
               <View style={styles.instructionRow}>
                 <Text style={styles.instructionLabel}>Amount</Text>
@@ -227,7 +227,7 @@ export default function SettingsScreen() {
 
             {/* Method selection */}
             <View style={styles.methodRow}>
-              {['JazzCash', 'EasyPaisa'].map(m => (
+              {['NayaPay', 'SadaPay'].map(m => (
                 <TouchableOpacity
                   key={m}
                   style={[styles.methodBtn, paymentMethod === m && styles.methodBtnActive]}

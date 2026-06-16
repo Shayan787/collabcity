@@ -28,26 +28,53 @@ function FileMessage({ msg }) {
   }
 
   const isImage = msg.fileType === 'image';
+  const expiresAt = msg.fileExpiresAt ? new Date(msg.fileExpiresAt) : null;
+  const hoursLeft = expiresAt ? (expiresAt - new Date()) / (1000 * 60 * 60) : null;
+  const expiringSoon = hoursLeft !== null && hoursLeft < 24 && hoursLeft > 0;
+  const daysLeft = hoursLeft !== null && hoursLeft >= 24 ? Math.ceil(hoursLeft / 24) : null;
+
   if (isImage) {
     return (
-      <TouchableOpacity onPress={() => Linking.openURL(msg.fileUrl)}>
-        <Image source={{ uri: msg.fileUrl }} style={styles.imageMsg} resizeMode="cover" />
+      <View>
+        <TouchableOpacity onPress={() => Linking.openURL(msg.fileUrl)}>
+          <Image source={{ uri: msg.fileUrl }} style={styles.imageMsg} resizeMode="cover" />
+        </TouchableOpacity>
         {msg.content ? <Text style={styles.caption}>{msg.content}</Text> : null}
-      </TouchableOpacity>
+        {expiringSoon && (
+          <View style={styles.expiryWarn}>
+            <Ionicons name="time-outline" size={10} color="#fbbf24" />
+            <Text style={styles.expiryWarnText}>Expires in {Math.ceil(hoursLeft)}h</Text>
+          </View>
+        )}
+        {daysLeft && (
+          <Text style={styles.expiryNormal}>Expires in {daysLeft} day{daysLeft > 1 ? 's' : ''}</Text>
+        )}
+      </View>
     );
   }
 
   return (
-    <TouchableOpacity style={styles.fileCard} onPress={() => Linking.openURL(msg.fileUrl)}>
-      <View style={styles.fileIcon}>
-        <Ionicons name="document-text" size={18} color={COLORS.brandLight} />
-      </View>
-      <View style={styles.fileInfo}>
-        <Text style={styles.fileName} numberOfLines={1}>{msg.fileName || 'File'}</Text>
-        <Text style={styles.fileExt}>{msg.fileName?.split('.').pop()?.toUpperCase() || 'FILE'}</Text>
-      </View>
-      <Ionicons name="download-outline" size={18} color={COLORS.brandLight} />
-    </TouchableOpacity>
+    <View>
+      <TouchableOpacity style={styles.fileCard} onPress={() => Linking.openURL(msg.fileUrl)}>
+        <View style={styles.fileIcon}>
+          <Ionicons name="document-text" size={18} color={COLORS.brandLight} />
+        </View>
+        <View style={styles.fileInfo}>
+          <Text style={styles.fileName} numberOfLines={1}>{msg.fileName || 'File'}</Text>
+          <Text style={styles.fileExt}>{msg.fileName?.split('.').pop()?.toUpperCase() || 'FILE'}</Text>
+        </View>
+        <Ionicons name="download-outline" size={18} color={COLORS.brandLight} />
+      </TouchableOpacity>
+      {expiringSoon && (
+        <View style={styles.expiryWarn}>
+          <Ionicons name="time-outline" size={10} color="#fbbf24" />
+          <Text style={styles.expiryWarnText}>Expires in {Math.ceil(hoursLeft)}h</Text>
+        </View>
+      )}
+      {daysLeft && (
+        <Text style={styles.expiryNormal}>Expires in {daysLeft} day{daysLeft > 1 ? 's' : ''}</Text>
+      )}
+    </View>
   );
 }
 
@@ -175,7 +202,6 @@ export default function ChatRoomScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={COLORS.textMuted} />
@@ -197,7 +223,6 @@ export default function ChatRoomScreen() {
         </View>
       </View>
 
-      {/* Messages */}
       {loading ? (
         <View style={styles.centered}><ActivityIndicator color={COLORS.brand} /></View>
       ) : (
@@ -219,7 +244,6 @@ export default function ChatRoomScreen() {
         />
       )}
 
-      {/* Input */}
       <View style={styles.inputBar}>
         <TouchableOpacity style={styles.attachBtn} onPress={showAttachMenu} disabled={uploading}>
           {uploading ? <ActivityIndicator size="small" color={COLORS.textDim} /> : <Ionicons name="attach" size={22} color={COLORS.textDim} />}
@@ -274,6 +298,9 @@ const styles = StyleSheet.create({
   expiredFile: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)', borderRadius: 10, padding: 10 },
   expiredTitle: { color: COLORS.red, fontSize: 12, fontWeight: '500' },
   expiredSub: { color: COLORS.textMuted, fontSize: 11 },
+  expiryWarn: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
+  expiryWarnText: { color: '#fbbf24', fontSize: 10, fontWeight: '500' },
+  expiryNormal: { color: '#4b5563', fontSize: 10, marginTop: 4 },
   typingContainer: { alignItems: 'flex-start', paddingLeft: 4, marginTop: 8 },
   typingBubble: { flexDirection: 'row', gap: 4, backgroundColor: '#1e1e2a', borderRadius: 18, padding: 12, borderWidth: 1, borderColor: COLORS.border },
   typingDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.textDim },

@@ -12,7 +12,7 @@ export default function SettingsPage() {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(null); // 'VERIFICATION' or 'BOOST'
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('JazzCash');
+  const [paymentMethod, setPaymentMethod] = useState('NayaPay');
   const [transactionId, setTransactionId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef();
@@ -184,7 +184,7 @@ export default function SettingsPage() {
         <p className="text-xs font-semibold text-white mb-2">💡 How payments work</p>
         <ol className="space-y-1.5">
           {[
-            'Click "Request" and enter your JazzCash/EasyPaisa number',
+            'Click "Request" and enter your Account Number',
             'Send the payment manually to our number',
             'Admin verifies and activates your service within 24 hours',
             'You get a notification when it\'s active',
@@ -258,8 +258,8 @@ export default function SettingsPage() {
               <p className="text-xs font-semibold text-brand-400 mb-2">Send payment first:</p>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">JazzCash / EasyPaisa</span>
-                  <span className="text-xs font-bold text-white">0300-0000000</span>
+                  <span className="text-xs text-gray-500">NayaPay / SadaPay</span>
+                  <span className="text-xs font-bold text-white">03108574686</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500">Amount</span>
@@ -275,7 +275,7 @@ export default function SettingsPage() {
 
             {/* Payment method */}
             <div className="flex gap-2 mb-3">
-              {['JazzCash', 'EasyPaisa'].map(m => (
+              {['NayaPay', 'SadaPay'].map(m => (
                 <button
                   key={m}
                   onClick={() => setPaymentMethod(m)}
@@ -307,7 +307,7 @@ export default function SettingsPage() {
               <CreditCard size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
               <input
                 className="input pl-10 text-sm"
-                placeholder="Transaction ID from JazzCash/EasyPaisa"
+                placeholder="Transaction ID of the Trasation You made"
                 value={transactionId}
                 onChange={e => setTransactionId(e.target.value)}
               />
