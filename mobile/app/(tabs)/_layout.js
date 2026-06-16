@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../src/lib/theme';
 import useAuthStore from '../../src/store/auth';
 import { useEffect, useState } from 'react';
@@ -24,6 +25,7 @@ export default function TabsLayout() {
   const { user } = useAuthStore();
   const socket = useSocket();
   const [unread, setUnread] = useState(0);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!user) return;
@@ -39,11 +41,20 @@ export default function TabsLayout() {
     return () => socket.off('notification', handler);
   }, [socket]);
 
+  const bottomPadding = insets.bottom > 0 ? insets.bottom : 16;
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: {
+          backgroundColor: '#18181f',
+          borderTopColor: '#2a2a35',
+          borderTopWidth: 1,
+          height: 56 + bottomPadding,
+          paddingBottom: bottomPadding,
+          paddingTop: 8,
+        },
         tabBarShowLabel: false,
         tabBarActiveTintColor: COLORS.brand,
         tabBarInactiveTintColor: COLORS.textFaint,
@@ -62,14 +73,6 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: '#18181f',
-    borderTopColor: '#2a2a35',
-    borderTopWidth: 1,
-    height: 60,
-    paddingBottom: 8,
-    paddingTop: 8,
-  },
   iconContainer: { position: 'relative', alignItems: 'center', justifyContent: 'center' },
   badge: {
     position: 'absolute', top: -4, right: -8,
