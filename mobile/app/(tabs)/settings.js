@@ -5,12 +5,15 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../src/lib/api';
 import useAuthStore from '../../src/store/auth';
 import { COLORS, RADIUS } from '../../src/lib/theme';
 
 export default function SettingsScreen() {
   const { user, updateUser } = useAuthStore();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = insets.bottom > 0 ? insets.bottom : 16;
   const [status, setStatus] = useState(null);
   const [payments, setPayments] = useState([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -198,7 +201,7 @@ export default function SettingsScreen() {
       {/* Payment Request Modal */}
       <Modal visible={!!showModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modal}>
+          <View style={[styles.modal, { paddingBottom: bottomPadding + 16 }]}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>
               {showModal === 'VERIFICATION' ? 'Get Verified Badge' : 'Boost Profile'}

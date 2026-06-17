@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatDistanceToNow } from 'date-fns';
 import api from '../../src/lib/api';
 import useAuthStore from '../../src/store/auth';
@@ -96,6 +97,8 @@ export default function ProjectsScreen() {
   const [submitting, setSubmitting] = useState(false);
   const { user } = useAuthStore();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = insets.bottom > 0 ? insets.bottom : 16;
 
   useEffect(() => { fetchProjects(); }, [tab]);
 
@@ -200,7 +203,7 @@ export default function ProjectsScreen() {
       {/* Apply Modal */}
       <Modal visible={!!applyTarget} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modal}>
+          <View style={[styles.modal, { paddingBottom: bottomPadding + 8 }]}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Apply to project</Text>
             <Text style={styles.modalSubtitle} numberOfLines={1}>{applyTarget?.title}</Text>
@@ -231,7 +234,7 @@ export default function ProjectsScreen() {
       <Modal visible={showNew} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <ScrollView contentContainerStyle={styles.modalScroll}>
-            <View style={styles.modal}>
+            <View style={[styles.modal, { paddingBottom: bottomPadding + 8 }]}>
               <View style={styles.modalHandle} />
               <Text style={styles.modalTitle}>Post a Project</Text>
               {[
