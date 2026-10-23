@@ -2,10 +2,9 @@ const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-const onlineUsers = new Map(); // userId -> socketId
+const onlineUsers = new Map();
 
 const setupSocket = (io) => {
-  // Auth middleware for socket
   io.use((socket, next) => {
     const token = socket.handshake.auth.token;
     if (!token) return next(new Error('Authentication error'));
@@ -22,7 +21,6 @@ const setupSocket = (io) => {
     const userId = socket.userId;
     console.log(`🟢 User connected: ${userId}`);
 
-    // Track online status
     onlineUsers.set(userId, socket.id);
     socket.join(`user:${userId}`);
 
@@ -31,14 +29,11 @@ const setupSocket = (io) => {
       data: { isOnline: true, lastSeen: new Date() },
     });
 
-    // Broadcast user online to others
     socket.broadcast.emit('user:online', { userId });
 
-    // Join all user's rooms
     const rooms = await prisma.roomMember.findMany({ where: { userId } });
     rooms.forEach(r => socket.join(`room:${r.roomId}`));
 
-    // Handle joining a room
     socket.on('room:join', async (roomId) => {
       const member = await prisma.roomMember.findUnique({
         where: { roomId_userId: { roomId, userId } },
@@ -49,7 +44,6 @@ const setupSocket = (io) => {
       }
     });
 
-    // Handle sending a message
     socket.on('message:send', async ({ roomId, content, fileUrl, fileType, fileName, cloudinaryId, fileExpiresAt }) => {
       if (!content?.trim() && !fileUrl) return;
 
@@ -72,10 +66,8 @@ const setupSocket = (io) => {
         include: { sender: { select: { id: true, name: true, username: true, avatar: true } } },
       });
 
-      // Emit to all room members
       io.to(`room:${roomId}`).emit('message:new', message);
 
-      // Notify offline room members
       const members = await prisma.roomMember.findMany({
         where: { roomId, userId: { not: userId } },
       });
@@ -90,23 +82,10 @@ const setupSocket = (io) => {
               data: { roomId },
             },
           });
-
-          // Send email to offline user
-          const offlineUser = await prisma.user.findUnique({ where: { id: m.userId } });
-          const sender = await prisma.user.findUnique({ where: { id: userId } });
-          if (offlineUser && sender) {
-            const preview = content.length > 60 ? content.slice(0, 60) + '...' : content;
-            sendEmail({
-              to: offlineUser.email,
-              template: 'newMessage',
-              data: { senderName: sender.name, preview, roomId },
-            });
-          }
         }
       }
     });
 
-    // Handle typing indicator
     socket.on('typing:start', ({ roomId }) => {
       socket.to(`room:${roomId}`).emit('typing:start', { userId, roomId });
     });
@@ -115,7 +94,6 @@ const setupSocket = (io) => {
       socket.to(`room:${roomId}`).emit('typing:stop', { userId, roomId });
     });
 
-    // Handle disconnect
     socket.on('disconnect', async () => {
       console.log(`🔴 User disconnected: ${userId}`);
       onlineUsers.delete(userId);
